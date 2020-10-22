@@ -8,8 +8,12 @@ fi
 case $arch in
     armv7l)
       export TAR="ARMv7HF"
-      curl -L "https://www.dropbox.com/sh/3c7uhvdw00ktaeg/AABegbe1mJfC6hlJCaLRIVLia?dl=0" > "${TAR}.zip"
-      curl -LO https://busybox.net/downloads/binaries/1.21.1/busybox-${arch}
+      if [ ! -f ./${TAR}.zip ]; then
+        echo "Downloading bootstrap zip for ${arch}"
+        curl -L "https://www.dropbox.com/sh/3c7uhvdw00ktaeg/AABegbe1mJfC6hlJCaLRIVLia?dl=0" --progress-bar > "${TAR}.zip"
+      fi
+      echo "Downloading busybox for ${arch}"
+      curl -LO https://busybox.net/downloads/binaries/1.21.1/busybox-${arch} --progress-bar
       chmod +x ./busybox-${arch}
       ;;
     x86_64)
@@ -20,7 +24,9 @@ case $arch in
       # I'll ask Renn, she'll prob know
 esac
 if [ -f "./${TAR}.zip" ]; then
-  if [ ! -f $(which unzip) ]; then
+  if ! $(which unzip) &>/dev/null; then
+    mkdir -p /usr/local/bin/
+    echo "Installing busybox to /usr/local/bin/"
     ./busybox-${arch} --install -s /usr/local/bin/
     mkdir out_NoChromo_${arch}
     unzip "./${TAR}.zip" -d "$(pwd)/out_NoChromo_${arch}"
@@ -34,10 +40,14 @@ if [ -d $(pwd)/out_NoChromo_${arch} ]; then
 fi
 
 glibc_ver=$( /${lib}/libc.so.6 | cut -d' ' -f 10 | cut -d$'\n' -f1 ); glibc_ver="${glibc_ver%%.}"
-for i in $(ls ./${TAR}*.tar.{gz,xz})
+for i in $(ls ./${TAR}*.tar.{gz,xz} 2>/dev/null) # ChromeOS's tar only supports these two tar types
 do
-  mkdir $(echo $i | sed 's/.tar..*//g')
-  tar xf $i -C ./$(echo $i | sed 's/.tar..*//g')
+  if [ ! -d $(echo $i | sed 's/.tar..*//g') ]; then
+    mkdir $(echo $i | sed 's/.tar..*//g')
+  else
+    rm $(echo $i | sed 's/.tar..*//g')/* -rf
+  fi
+  tar xf $i -C ./$(echo $i | sed 's/.tar..*//g') 2>/dev/null
 done
 TARDIR=$(pwd)
 sudo chown ${USER} /usr/local/ -R
@@ -47,6 +57,8 @@ do
   if [ $(ls -d ./*/ | wc -l) == "1" ]; then
     cd ./$(ls -d ./*/)
   fi
-  cp ./*-r /usr/local/
+  cp ./* -r /usr/local/
   cd $TARDIR
 done
+rm ./out_NoChromo_${arch} -rf
+rm ./busybox-${arch} -rf
