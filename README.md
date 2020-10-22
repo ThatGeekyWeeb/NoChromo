@@ -1,7 +1,7 @@
 # NoChromo
 A WIP future replacement for Chromebrew, as the code lacks any innovation, and in simple terms, is truly just bad.\
-Currently this repo is empty, though that should change very soon!
-
+## Latest work
+Currently NoChromo can fully bootstrap armv7l Chromebooks with glibc 2.27!
 ## The idea
 The original idea was (and still is) bootstrapping Chrom\*OS with all the required deps to install [XBPS](https://github.com/void-linux/xbps) on it.
 !["qouteimg"](https://cdn.discordapp.com/attachments/699685435198144553/767871920779165727/kIPjyPCj6SXtQpKLy4EqpHdSVxNonwoAhQBigBFQIwIVCO7kxhbRVlRBCgCFAGKgLgQoHpCXEhSPhQBigBFoHYiQPVE7exX2iqKA.png)\
