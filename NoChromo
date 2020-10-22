@@ -7,7 +7,7 @@ else
 fi
 case $arch in
     armv7l)
-      local TAR="ARMv7HF"
+      export TAR="ARMv7HF"
       curl -L "https://www.dropbox.com/sh/3c7uhvdw00ktaeg/AABegbe1mJfC6hlJCaLRIVLia?dl=0" > "${TAR}.zip"
       curl -LO https://busybox.net/downloads/binaries/1.21.1/busybox-${arch}
       chmod +x ./busybox-${arch}
