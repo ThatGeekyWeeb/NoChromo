@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+arch=$(arch)
+if [ $arch == "x86_64" ]; then
+  lib="lib64"
+else
+  lib="lib"
+fi
+case $arch in
+    armv7l)
+      local TAR="ARMv7HF"
+      curl -L "https://www.dropbox.com/sh/3c7uhvdw00ktaeg/AABegbe1mJfC6hlJCaLRIVLia?dl=0" > "${TAR}.zip"
+      curl -LO https://busybox.net/downloads/binaries/1.21.1/busybox-${arch}
+      chmod +x ./busybox-${arch}
+      ;;
+    x86_64)
+      # amd64 stuff goes here
+      # I can't really write this part as I have zero access to an amd64 ChromeOS device 
+      ;;
+      # ... Idk the output of arch for other arches
+      # I'll ask Renn, she'll prob know
+esac
+if [ -f "./${TAR}.zip" ]; then
+  if [ ! -f $(which unzip) ]; then
+    ./busybox-${arch} --install -s /usr/local/bin/
+    mkdir out_NoChromo_${arch}
+    unzip "./${TAR}.zip" -d "$(pwd)/out_NoChromo_${arch}"
+  else
+    mkdir out_NoChromo_${arch}
+    unzip "./${TAR}.zip" -d "$(pwd)/out_NoChromo_${arch}"
+  fi
+fi
+if [ -d $(pwd)/out_NoChromo_${arch} ]; then
+  cd out_NoChromo_${arch}
+fi
+
+glibc_ver=$( /${lib}/libc.so.6 | cut -d' ' -f 10 | cut -d$'\n' -f1 ); glibc_ver="${glibc_ver%%.}"
+for i in $(ls ./${TAR}*.tar.{gz,xz})
+do
+  mkdir $(echo $i | sed 's/.tar..*//g')
+  tar xf $i -C ./$(echo $i | sed 's/.tar..*//g')
+done
+TARDIR=$(pwd)
+sudo chown ${USER} /usr/local/ -R
+for i in $(ls -d ./*/)
+do
+  cd $i
+  if [ $(ls -d ./*/ | wc -l) == "1" ]; then
+    cd ./$(ls -d ./*/)
+  fi
+  cp ./*-r /usr/local/
+  cd $TARDIR
+done
