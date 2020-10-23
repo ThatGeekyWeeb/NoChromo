@@ -5,8 +5,12 @@ if [ $arch == "x86_64" ]; then
 else
   lib="lib"
 fi
+if grep CHROMEOS /etc/lsb-release -q; then
+  export DESTDIR="/usr/local"
+  export CrOS="yes"
+fi
 case $arch in
-    armv7l)
+    armv7l, armv8, aarch64) # this only works for 32bit kernels
       export TAR="ARMv7HF"
       if [ ! -f ./${TAR}.zip ]; then
         echo "Downloading bootstrap zip for ${arch}"
@@ -16,9 +20,12 @@ case $arch in
       curl -LO https://busybox.net/downloads/binaries/1.21.1/busybox-${arch} --progress-bar
       chmod +x ./busybox-${arch}
       ;;
-    x86_64)
-      # amd64 stuff goes here
-      # I can't really write this part as I have zero access to an amd64 ChromeOS device 
+    x86_64, amd64)
+      export TAR=""
+      mkdir out_NoChromo_${arch}
+      cd out_NoChromo_${arch}
+      curl -LO --progress-bar "http://144.217.12.194/x86_64/gcc-9.2.0-static.tar.gz"
+      
       ;;
       # ... Idk the output of arch for other arches
       # I'll ask Renn, she'll prob know
@@ -28,6 +35,7 @@ if [ -f "./${TAR}.zip" ]; then
     mkdir -p /usr/local/bin/
     echo "Installing busybox to /usr/local/bin/"
     ./busybox-${arch} --install -s /usr/local/bin/
+    rm /usr/local/bin/tar /usr/local/bin/xr /usr/local/bin/sh /usr/local/bin/grep # ChromeOS defaults /usr/local/bin as the first path dir, so we have to remove some extta commands
     mkdir out_NoChromo_${arch}
     unzip "./${TAR}.zip" -d "$(pwd)/out_NoChromo_${arch}"
   else
@@ -50,15 +58,118 @@ do
   tar xf $i -C ./$(echo $i | sed 's/.tar..*//g') 2>/dev/null
 done
 TARDIR=$(pwd)
-sudo chown ${USER} /usr/local/ -R
+if [ CrOS = "true" ]; then
+  sudo chown ${USER} /usr/local/ -R
+fi
 for i in $(ls -d ./*/)
 do
   cd $i
   if [ $(ls -d ./*/ | wc -l) == "1" ]; then
     cd ./$(ls -d ./*/)
   fi
-  cp ./* -r /usr/local/
+  cp ./* -r ${DESTDIR-/usr/}
   cd $TARDIR
 done
+
+## Extra pkgs
+if [ CrOS = "true" ]; then
+  ln -s /usr/local/$lib/libnsl.so.1 /usr/local/$lib/libnsl.so # This has to be done to allow perl to build
+fi
+echo "Compile Openssl?" # I'm going to set openssl to compile on install, due to it being very buggy when distrobuted as a tarball
+echo -n "Y/n: "
+read 'opencomp'
+case $opencomp in
+    [Yy]*)
+      if [ CrOS = "true" ]; then
+        openver=$(openssl version | cut -d' ' -f 2)
+        curl -LO --progress-bar "https://www.openssl.org/source/openssl-$openver.tar.gz"
+      else
+        curl -LO --progress-bar "https://www.openssl.org/source/openssl-1.1.1h.tar.gz"
+        openver="1.1.1h"
+      fi
+      mkdir opencomp
+      cd opencomp
+      mv ../openssl-$openver.tar.gz ./
+      tar xf openssl-$openver.tar.gz 
+      cd $(ls -d ./openssl-$openver/)
+      case $arch in
+        arm*)
+          ./config linux-armv4 --prefix=/usr/local/ ;;
+        *)
+          ./config --prefix=/usr/local/ ;;
+      esac
+      make -j$(nproc --all) depend CFLAGS="-Os" # depend builds the openssl.pc file needed for pkgconfig
+      make -j$(nproc --all) all # Using CFLAGS here breaks openssl
+      make install # Notice: DESTDIR does not work with openssl
+      ;;
+      *)
+      echo "Openssl will not be compiled!"
+      if [ CrOS = "true" ]; then
+          echo "Will use fake linking for ChromeOS"
+          cd ${TARDIR}
+          mkdir sslfake
+          cd sslfake
+          cat << 'EOF' > ./ld
+#!/bin/sh 
+ld=$(which ld.gold) 
+${ld} -L/lib:/usr/lib:/usr/local/lib $@ 
+EOF
+          chmod +x ./ld
+          mv ./ld ${DESTDIR}/bin/
+          cat << 'EOF' > libssl.pc
+prefix=/usr/
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: OpenSSL-libssl
+Description: Secure Sockets Layer and cryptography libraries
+EOF
+          echo "Version: $(openssl version | cut -d' ' -f 2)" >> libssl.pc
+          cat << 'EOF' >> libssl.pc
+Requires.private: libcrypto
+Libs: -L${libdir} -lssl
+Libs.private: -ldl
+Cflags: -I${includedir} -I/usr/local/include
+EOF
+        cat << 'EOF' > libcrypto.pc
+prefix=/usr/
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+enginesdir=${libdir}/engines
+
+Name: OpenSSL-libcrypto
+Description: OpenSSL cryptography library
+EOF
+        echo "Version: $(openssl version | cut -d' ' -f 2)" >> libcrypto.pc
+        cat << 'EOF' >> libcrypto.pc
+Requires: 
+Libs: -L${libdir} -lcrypto
+Libs.private: -ldl
+Cflags: -I${includedir} -I/usr/local/include
+EOF
+        cat << 'EOF' > openssl.pc
+prefix=/usr/
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: OpenSSL
+Description: Secure Sockets Layer and cryptography libraries and tools
+EOF
+        echo "Version: $(openssl version | cut -d' ' -f 2)" >> openssl.pc
+        cat << 'EOF' >> openssl.pc
+Requires: libssl libcrypto
+EOF
+        mkdir -p ${DESTDIR}/$lib/pkgconfig/
+        mv ./*.pc ${DESTDIR}/$lib/pkgconfig/
+        echo "ChromeOS users will now have ssl.pc files installed to there proper dirs"
+        echo "GNU ld gold is experimental, but supports RELR, and all ChromeOS libs use RELR"
+      fi
+      cd ${TARDIR}
+      ;;
+esac
+##
 rm ./out_NoChromo_${arch} -rf
 rm ./busybox-${arch} -rf
