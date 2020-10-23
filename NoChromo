@@ -21,11 +21,11 @@ case $arch in
       chmod +x ./busybox-${arch}
       ;;
     x86_64, amd64)
-      export TAR=""
-      mkdir out_NoChromo_${arch}
-      cd out_NoChromo_${arch}
-      curl -LO --progress-bar "http://144.217.12.194/x86_64/gcc-9.2.0-static.tar.gz"
-      
+      # export TAR=""
+      #  mkdir out_NoChromo_${arch}
+      # cd out_NoChromo_${arch}
+      # curl -LO --progress-bar "http://144.217.12.194/x86_64/gcc-9.2.0-static.tar.gz"
+      # I still need to test x86_64
       ;;
       # ... Idk the output of arch for other arches
       # I'll ask Renn, she'll prob know
