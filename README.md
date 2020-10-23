@@ -1,11 +1,11 @@
 # NoChromo
-A WIP future replacement for Chromebrew, as the code lacks any innovation, and in simple terms, is truly just bad.\
+A quick bootstrapper. That can bootstrap any device with `curl` and `tar` + coreutils, with just 400MB
 ## Latest work
 Currently NoChromo can fully bootstrap armv7l Chromebooks with glibc 2.27!
 ## The idea
-The original idea was (and still is) bootstrapping Chrom\*OS with all the required deps to install [XBPS](https://github.com/void-linux/xbps) on it.
-!["qouteimg"](https://cdn.discordapp.com/attachments/699685435198144553/767871920779165727/kIPjyPCj6SXtQpKLy4EqpHdSVxNonwoAhQBigBFQIwIVCO7kxhbRVlRBCgCFAGKgLgQoHpCXEhSPhQBigBFoHYiQPVE7exX2iqKA.png)\
-Although these tarballs and scripts can be used for any usage, and are purely for the purpose of bootstrapping Chrom\*OS and allowing for anything other than Chromebrew to take over from there.
+The original idea for NoChromo, was getting XBPS to Chrom\*OS, but during the development, I leaned more towards the idea that NoChromo would simply be a bootstrapper.\
+Thus, NoChromo is now mainly a bootstrapper, taking devices from nothing but `bash`(or in the future `sh`), coreutils, `curl`, and `tar`(with `xz` support)\
+These tarballs and scripts can be used for any usage, and are purely for the purpose of bootstrapping any device from basic utils, as a project for such seemed to not pre-exist
 ***
 #### Extra Info
 Everything within this repo is distributed under the present MIT license, althought the software within the tarballs or compiled during the bootstrap may be licensed under a different license.\
