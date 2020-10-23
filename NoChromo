@@ -111,8 +111,14 @@ case $opencomp in
           cd sslfake
           cat << 'EOF' > ./ld
 #!/bin/sh 
-ld=$(which ld.gold) 
-${ld} -L/lib:/usr/lib:/usr/local/lib $@ 
+ld=$(which ld.gold)
+if [ $(arch) = "x86_64" ] || [ $(arch) = "amd64" ]; then
+  lib="lib64"
+else
+  lib="lib"
+fi
+LD="/$lib:/usr/$lib:/usr/local/$lib"
+${ld} -L$(echo ${LD_LIBRARY_PATH:-$LD} | sed 's/:/ -L/g') $@
 EOF
           chmod +x ./ld
           mv ./ld ${DESTDIR}/bin/
