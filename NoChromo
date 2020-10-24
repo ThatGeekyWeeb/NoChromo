@@ -5,7 +5,7 @@ if [ $arch == "x86_64" ]; then
 else
   lib="lib"
 fi
-if grep CHROMEOS /etc/lsb-release -q; then
+if [ -z $DESTDIR ] && grep CHROMEOS /etc/lsb-release -q; then
   export DESTDIR="/usr/local"
   export CrOS="yes"
 fi
@@ -117,7 +117,7 @@ if [ $(arch) = "x86_64" ] || [ $(arch) = "amd64" ]; then
 else
   lib="lib"
 fi
-LD="/$lib:/usr/$lib:/usr/local/$lib"
+LD="/$lib:/usr/local/$lib:/usr/$lib"
 ${ld} -L$(echo ${LD_LIBRARY_PATH:-$LD} | sed 's/:/ -L/g') $@
 EOF
           chmod +x ./ld
@@ -171,11 +171,14 @@ EOF
         mkdir -p ${DESTDIR}/$lib/pkgconfig/
         mv ./*.pc ${DESTDIR}/$lib/pkgconfig/
         echo "ChromeOS users will now have ssl.pc files installed to there proper dirs"
-        echo "GNU ld gold is experimental, but supports RELR, and all ChromeOS libs use RELR"
+        echo "GNU gold is experimental, but supports RELR, and all ChromeOS libs use RELR" # gnu gold has been installed
+        printf "\nChroots or bootstraps made by NoChromo should not be used for production, NoChromo's one purpose is to be as small as possible...\n\n"
       fi
       cd ${TARDIR}
       ;;
 esac
 ##
+printf "\nChroots or bootstraps made by NoChromo should not be used for production, NoChromo's one purpose is to be as small as possible...\n\n"
+printf "\nIf you picked no to skip openssl compiling I recommend you hand compile it, as curl requires it\n\n"
 rm ./out_NoChromo_${arch} -rf
 rm ./busybox-${arch} -rf
