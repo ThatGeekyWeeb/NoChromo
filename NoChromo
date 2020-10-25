@@ -70,9 +70,13 @@ do
   cp ./* -r ${DESTDIR-/usr/}
   cd $TARDIR
 done
+if [ $arch = "armv7l" ]; then
+  rm /usr/local/armv7l-unknown-linux-gnueabihf/bin -rf
+fi
+  
 
 ## Extra pkgs
-if [ CrOS = "true" ]; then
+if grep CHROMEOS /etc/lsb-release -q && [ $DESTDIR = "/usr/local/" ]; then
   ln -s /usr/local/$lib/libnsl.so.1 /usr/local/$lib/libnsl.so # This has to be done to allow perl to build
 fi
 echo "Compile Openssl?" # I'm going to set openssl to compile on install, due to it being very buggy when distrobuted as a tarball
@@ -94,9 +98,9 @@ case $opencomp in
       cd $(ls -d ./openssl-$openver/)
       case $arch in
         arm*)
-          ./config linux-armv4 --prefix=/usr/local/ ;;
+          ./config linux-armv4 --prefix=${DESTDIR} ;;
         *)
-          ./config --prefix=/usr/local/ ;;
+          ./config --prefix=${DESTDIR} ;;
       esac
       make -j$(nproc --all) depend CFLAGS="-Os" # depend builds the openssl.pc file needed for pkgconfig
       make -j$(nproc --all) all # Using CFLAGS here breaks openssl
@@ -104,7 +108,7 @@ case $opencomp in
       ;;
       *)
       echo "Openssl will not be compiled!"
-      if [ CrOS = "true" ]; then
+      if grep CHROMEOS /etc/lsb-release -q && [ $DESTDIR = "/usr/local/" ]; then
           echo "Will use fake linking for ChromeOS"
           cd ${TARDIR}
           mkdir sslfake
