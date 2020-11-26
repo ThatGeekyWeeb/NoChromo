@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 arch=$(arch)
-if [ $arch == "x86_64" ]; then
+if [ "$arch" == "x86_64" ]; then
   lib="lib64"
 else
   lib="lib"
 fi
-if [ -z $DESTDIR ] && grep CHROMEOS /etc/lsb-release -q; then
+if [ -z "$DESTDIR" ] && grep CHROMEOS /etc/lsb-release -q; then
   export DESTDIR="/usr/local"
   export CrOS="yes"
 fi
@@ -17,8 +17,8 @@ case $arch in
         curl -L "https://www.dropbox.com/sh/3c7uhvdw00ktaeg/AABegbe1mJfC6hlJCaLRIVLia?dl=0" --progress-bar > "${TAR}.zip"
       fi
       echo "Downloading busybox for ${arch}"
-      curl -LO https://busybox.net/downloads/binaries/1.21.1/busybox-${arch} --progress-bar
-      chmod +x ./busybox-${arch}
+      curl -LO https://busybox.net/downloads/binaries/1.21.1/busybox-"${arch}" --progress-bar
+      chmod +x ./busybox-"${arch}"
       ;;
     x86_64|amd64)
       # export TAR=""
@@ -34,43 +34,43 @@ if [ -f "./${TAR}.zip" ]; then
   if ! $(which unzip) &>/dev/null; then
     mkdir -p /usr/local/bin/
     echo "Installing busybox to /usr/local/bin/"
-    ./busybox-${arch} --install -s /usr/local/bin/
+    ./busybox-"${arch}" --install -s /usr/local/bin/
     rm /usr/local/bin/tar /usr/local/bin/xr /usr/local/bin/sh /usr/local/bin/grep # ChromeOS defaults /usr/local/bin as the first path dir, so we have to remove some extta commands
-    mkdir out_NoChromo_${arch}
+    mkdir out_NoChromo_"${arch}"
     unzip "./${TAR}.zip" -d "$(pwd)/out_NoChromo_${arch}"
   else
-    mkdir out_NoChromo_${arch}
+    mkdir out_NoChromo_"${arch}"
     unzip "./${TAR}.zip" -d "$(pwd)/out_NoChromo_${arch}"
   fi
 fi
-if [ -d $(pwd)/out_NoChromo_${arch} ]; then
-  cd out_NoChromo_${arch}
+if [ -d $(pwd)/out_NoChromo_"${arch}" ]; then
+  cd out_NoChromo_"${arch}" || exit
 fi
 
 glibc_ver=$( /${lib}/libc.so.6 | cut -d' ' -f 10 | cut -d$'\n' -f1 ); glibc_ver="${glibc_ver%%.}"
-for i in $(ls ./${TAR}*.tar.{gz,xz} 2>/dev/null) # ChromeOS's tar only supports these two tar types
+for i in ./"${TAR}"*.tar.{gz,xz} # ChromeOS's tar only supports these two tar types
 do
-  if [ ! -d $(echo $i | sed 's/.tar..*//g') ]; then
-    mkdir $(echo $i | sed 's/.tar..*//g')
+  if [ ! -d $(echo "$i" | sed 's/.tar..*//g') ]; then
+    mkdir $(echo "$i" | sed 's/.tar..*//g')
   else
-    rm $(echo $i | sed 's/.tar..*//g')/* -rf
+    rm $(echo "${i:?}" | sed 's/.tar..*//g')/* -rf
   fi
-  tar xf $i -C ./$(echo $i | sed 's/.tar..*//g') 2>/dev/null
+  [ -f "$1" ] && tar xf "$i" -C ./$(echo "$1" | sed 's/.tar..*//g') 2>/dev/null
 done
 TARDIR=$(pwd)
 if [ CrOS = "true" ]; then
-  sudo chown ${USER} /usr/local/ -R
+  sudo chown "${USER}" /usr/local/ -R
 fi
 for i in $(ls -d ./*/)
 do
-  cd $i
+  cd "$i" || exit
   if [ $(ls -d ./*/ | wc -l) == "1" ]; then
-    cd ./$(ls -d ./*/)
+    cd ./$(ls -d ./*/) || exit
   fi
   cp ./* -r ${DESTDIR-/usr/}
-  cd $TARDIR
+  cd "$TARDIR" || exit
 done
-if [ $arch = "armv7l" ]; then
+if [ "$arch" = "armv7l" ]; then
   rm /usr/local/armv7l-unknown-linux-gnueabihf/bin -rf
 fi
   
@@ -81,7 +81,8 @@ if grep CHROMEOS /etc/lsb-release -q && [ $DESTDIR = "/usr/local/" ]; then
 fi
 echo "Compile Openssl?" # I'm going to set openssl to compile on install, due to it being very buggy when distrobuted as a tarball
 echo -n "Y/n: "
-read 'opencomp'
+IFS=""
+read -r 'opencomp'
 case $opencomp in
     [Yy]*)
       if [ CrOS = "true" ]; then
@@ -92,10 +93,10 @@ case $opencomp in
         openver="1.1.1h"
       fi
       mkdir opencomp
-      cd opencomp
+      cd opencomp || exit
       mv ../openssl-$openver.tar.gz ./
       tar xf openssl-$openver.tar.gz 
-      cd $(ls -d ./openssl-$openver/)
+      cd $(ls -d ./openssl-$openver/) || exit
       case $arch in
         arm*)
           ./config linux-armv4 --prefix=${DESTDIR} ;;
@@ -110,9 +111,9 @@ case $opencomp in
       echo "Openssl will not be compiled!"
       if grep CHROMEOS /etc/lsb-release -q && [ $DESTDIR = "/usr/local/" ]; then
           echo "Will use fake linking for ChromeOS"
-          cd ${TARDIR}
+          cd "${TARDIR}" || exit
           mkdir sslfake
-          cd sslfake
+          cd sslfake || exit
           cat << 'EOF' > ./ld
 #!/bin/sh 
 ld=$(which ld.gold)
@@ -131,7 +132,6 @@ prefix=/usr/
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
-
 Name: OpenSSL-libssl
 Description: Secure Sockets Layer and cryptography libraries
 EOF
@@ -148,7 +148,6 @@ exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 enginesdir=${libdir}/engines
-
 Name: OpenSSL-libcrypto
 Description: OpenSSL cryptography library
 EOF
@@ -164,7 +163,6 @@ prefix=/usr/
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
-
 Name: OpenSSL
 Description: Secure Sockets Layer and cryptography libraries and tools
 EOF
@@ -178,11 +176,12 @@ EOF
         echo "GNU gold is experimental, but supports RELR, and all ChromeOS libs use RELR" # gnu gold has been installed
         printf "\nChroots or bootstraps made by NoChromo should not be used for production, NoChromo's one purpose is to be as small as possible...\n\n"
       fi
-      cd ${TARDIR}
+      cd "${TARDIR}" || exit
       ;;
 esac
 ##
 printf "\nChroots or bootstraps made by NoChromo should not be used for production, NoChromo's one purpose is to be as small as possible...\n\n"
 printf "\nIf you picked no to skip openssl compiling I recommend you hand compile it, as curl requires it\n\n"
-rm ./out_NoChromo_${arch} -rf
-rm ./busybox-${arch} -rf
+cd ${TARDIR}/../
+[ -d ./out_NoChromo_"${arch}" ] && rm ./out_NoChromo_"${arch}" -rf
+[ -f ./busybox-"${arch}" ] && rm ./busybox-"${arch}" -rf
