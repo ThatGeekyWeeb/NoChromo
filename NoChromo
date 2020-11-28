@@ -48,14 +48,14 @@ if [ -d $(pwd)/out_NoChromo_"${arch}" ]; then
 fi
 
 glibc_ver=$( /${lib}/libc.so.6 | cut -d' ' -f 10 | cut -d$'\n' -f1 ); glibc_ver="${glibc_ver%%.}"
-for i in ./"${TAR}"*.tar.{gz,xz} # ChromeOS's tar only supports these two tar types
+for i in ./"${TAR}"*.tar.*
 do
-  if [ ! -d $(echo "$i" | sed 's/.tar..*//g') ]; then
-    mkdir $(echo "$i" | sed 's/.tar..*//g')
+  if [ ! -d $(echo "$i" | cut -d'.' -f2) ]; then
+    mkdir $(echo "$i" | cut -d'.' -f2)
   else
-    rm $(echo "${i:?}" | sed 's/.tar..*//g')/* -rf
+    rm $(echo "${i:?}" | cut -d'.' -f2)/* -rf
   fi
-  [ -f "$1" ] && tar xf "$i" -C ./$(echo "$1" | sed 's/.tar..*//g') 2>/dev/null
+  [ -f "$i" ] && tar xf "$i" -C ./$(echo "$i" | cut -d'.' -f2) 2>/dev/null
 done
 TARDIR=$(pwd)
 if [ CrOS = "true" ]; then
