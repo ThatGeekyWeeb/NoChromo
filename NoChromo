@@ -51,9 +51,9 @@ glibc_ver=$( /${lib}/libc.so.6 | cut -d' ' -f 10 | cut -d$'\n' -f1 ); glibc_ver=
 for i in ./"${TAR}"*.tar.*
 do
   if [ ! -d $(echo "$i" | cut -d'.' -f2) ]; then
-    mkdir $(echo "$i" | cut -d'.' -f2)
+    mkdir ./$(echo "$i" | cut -d'.' -f2)
   else
-    rm $(echo "${i:?}" | cut -d'.' -f2)/* -rf
+    rm ./$(echo "${i:?}" | cut -d'.' -f2)/* -rf
   fi
   [ -f "$i" ] && tar xf "$i" -C ./$(echo "$i" | cut -d'.' -f2) 2>/dev/null
 done
